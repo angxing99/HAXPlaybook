@@ -3,31 +3,33 @@
 
 // This file defines the types used in the application.
 
-import contentData from '../data/content.json';
-import { ConditionRunner } from 'survey-react'
-import { surveyModel } from '../App'
-import { v4 as uuidv4 } from 'uuid';
+import contentData from "../data/content.json";
+import { ConditionRunner } from "survey-react";
+import { surveyModel } from "../App";
+import { v4 as uuidv4 } from "uuid";
 
 function getChoiceFromContent(questionName: string, choiceValue: string) {
-    if  (questionName == null || choiceValue == null) {
-      return null;
-    }
-    const metadata: any = contentData.questions.find((q: any) => q.name === questionName);
-    // The surveyjs framework sends a boolean value instead of string
-    // for boolean questions, so we need to force it to be a string
-    choiceValue = choiceValue.toString();
-    
-    if (metadata == null) {
-      console.log("Could not find question %s in content.json", questionName);
-      return null;
-    }
+  if (questionName == null || choiceValue == null) {
+    return null;
+  }
+  const metadata: any = contentData.questions.find(
+    (q: any) => q.name === questionName
+  );
+  // The surveyjs framework sends a boolean value instead of string
+  // for boolean questions, so we need to force it to be a string
+  choiceValue = choiceValue.toString();
 
-    if (metadata.choices == null) {
-      console.log("Missing choices array for question %s", questionName);
-      return null;
-    }
+  if (metadata == null) {
+    console.log("Could not find question %s in content.json", questionName);
+    return null;
+  }
 
-    return metadata.choices.find((c: any) => c.name === choiceValue);
+  if (metadata.choices == null) {
+    console.log("Missing choices array for question %s", questionName);
+    return null;
+  }
+
+  return metadata.choices.find((c: any) => c.name === choiceValue);
 }
 
 export class TaskCard {
@@ -47,26 +49,58 @@ export class TaskCard {
 
   static fromQuestionChoice(questionName: string, choiceValue: string) {
     const choice = getChoiceFromContent(questionName, choiceValue);
-    if (choice == null || choice.taskCard == null || choice.taskCard.tasks == null) {
-      console.debug("Null taskcard for question %s choice %s", questionName, choiceValue);
+    if (
+      choice == null ||
+      choice.taskCard == null ||
+      choice.taskCard.tasks == null
+    ) {
+      console.debug(
+        "Null taskcard for question %s choice %s",
+        questionName,
+        choiceValue
+      );
       return null;
     }
 
-    const tasks = choice.taskCard.tasks.map((task: any) => { return new Task(task.name, task.details, task.visibleIf) });
-    return new TaskCard(choice.taskCard.title, choice.taskCard.message, questionName, tasks);
+    const tasks = choice.taskCard.tasks.map((task: any) => {
+      return new Task(task.name, task.details, task.visibleIf);
+    });
+    return new TaskCard(
+      choice.taskCard.title,
+      choice.taskCard.message,
+      questionName,
+      tasks
+    );
   }
 
   static filterTasks(taskCards: TaskCard[]) {
-    if (surveyModel) {
+    if (!surveyModel) {
+      console.warn(
+        "Survey model is not initialized yet. Returning unfiltered task cards."
+      );
+      return taskCards;
+    }
+
+    try {
       const values = surveyModel.getAllValues();
-      const properties = surveyModel.getFilteredProperties();
+      const properties = surveyModel.getFilteredProperties?.();
+      if (!properties) {
+        console.warn("surveyModel.getFilteredProperties is undefined.");
+        return taskCards;
+      }
+
       const filteredCards: TaskCard[] = [];
-      taskCards.forEach(tc => {
-        const filtered = tc.tasks.filter(task => new ConditionRunner(task.visibleIf ?? "true").run(values, properties))
-        filteredCards.push(new TaskCard(tc.title, tc.message, tc.question, filtered));
-      })
+      taskCards.forEach((tc) => {
+        const filtered = tc.tasks.filter((task) =>
+          new ConditionRunner(task.visibleIf ?? "true").run(values, properties)
+        );
+        filteredCards.push(
+          new TaskCard(tc.title, tc.message, tc.question, filtered)
+        );
+      });
       return filteredCards;
-    } else {
+    } catch (err) {
+      console.error("Error while filtering tasks:", err);
       return taskCards;
     }
   }

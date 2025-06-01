@@ -3,8 +3,8 @@
 
 // This component renders the help cards shown below the survey
 
-import * as React from 'react';
-import { useId } from '@fluentui/react-hooks';
+import * as React from "react";
+import { useId } from "@fluentui/react-hooks";
 import {
   getTheme,
   mergeStyleSets,
@@ -12,45 +12,67 @@ import {
   Modal,
   IconButton,
   IIconProps,
-} from '@fluentui/react';
-import { surveyModel } from '../App'
-import { ConditionRunner } from 'survey-react'
+} from "@fluentui/react";
+import { surveyModel } from "../App";
+import { ConditionRunner } from "survey-react";
 
 interface HelpProps {
-  name: string,
-  examples: Array<any>
-  show: boolean,
-  onClose: () => void
+  name: string;
+  examples: Array<any>;
+  show: boolean;
+  onClose: () => void;
 }
 
-const cancelIcon: IIconProps = { iconName: 'Cancel' };
+const cancelIcon: IIconProps = { iconName: "Cancel" };
 
 function filterExamples(examples: Array<any>) {
-  if (surveyModel) {
+  if (!surveyModel) {
+    console.warn("Survey model is not initialized yet.");
+    return examples;
+  }
+
+  try {
     const values = surveyModel.getAllValues();
-    const properties = surveyModel.getFilteredProperties();
-    return examples.filter(ex => new ConditionRunner(ex.visibleIf ?? "true").run(values, properties));
-  } else {
-    console.log("Could not filter examples because surveyModel is null");
+    const properties = surveyModel.getFilteredProperties?.();
+    if (!properties) {
+      console.warn("surveyModel.getFilteredProperties is undefined.");
+      return examples;
+    }
+
+    return examples.filter((ex) =>
+      new ConditionRunner(ex.visibleIf ?? "true").run(values, properties)
+    );
+  } catch (err) {
+    console.error("Error while filtering examples:", err);
     return examples;
   }
 }
 
-export const HelpDialog: React.FunctionComponent<HelpProps> = ({ name, examples, show, onClose }) => {
-
+export const HelpDialog: React.FunctionComponent<HelpProps> = ({
+  name,
+  examples,
+  show,
+  onClose,
+}) => {
   // Use useId() to ensure that the IDs are unique on the page.
-  const titleId = useId('title');
+  const titleId = useId("title");
 
   const visibleExamples = filterExamples(examples);
-  console.debug(`Filtered ${visibleExamples.length} visible examples out of ${examples.length} total examples for help=${name}`);
+  console.debug(
+    `Filtered ${visibleExamples.length} visible examples out of ${examples.length} total examples for help=${name}`
+  );
   const body = visibleExamples?.map((example, i) => {
     return (
       <div key={example.name}>
         <h5>{example.name}</h5>
         <div dangerouslySetInnerHTML={{ __html: example.details }}></div>
-        {i < visibleExamples.length-1 ? (<hr style={{ width: "100%", marginTop: "1.5em", marginBottom: "1.5em" }}/>) : null}
+        {i < visibleExamples.length - 1 ? (
+          <hr
+            style={{ width: "100%", marginTop: "1.5em", marginBottom: "1.5em" }}
+          />
+        ) : null}
       </div>
-    )
+    );
   });
 
   return (
@@ -72,9 +94,7 @@ export const HelpDialog: React.FunctionComponent<HelpProps> = ({ name, examples,
               onClick={onClose}
             />
           </header>
-          <div className={contentStyles.body}>
-            {body}
-          </div>
+          <div className={contentStyles.body}>{body}</div>
         </section>
       </Modal>
     </div>
@@ -85,39 +105,39 @@ export const HelpDialog: React.FunctionComponent<HelpProps> = ({ name, examples,
 const theme = getTheme();
 const contentStyles = mergeStyleSets({
   container: {
-    display: 'flex',
-    flexFlow: 'column nowrap',
-    alignItems: 'stretch',
+    display: "flex",
+    flexFlow: "column nowrap",
+    alignItems: "stretch",
   },
   header: [
     theme.fonts.xLargePlus,
     {
-      flex: '1 1 auto',
+      flex: "1 1 auto",
       borderTop: `4px solid ${theme.palette.themePrimary}`,
       color: theme.palette.neutralPrimary,
-      display: 'flex',
-      alignItems: 'center',
+      display: "flex",
+      alignItems: "center",
       fontWeight: FontWeights.semibold,
-      padding: '12px 12px 14px 24px',
+      padding: "12px 12px 14px 24px",
     },
   ],
   body: {
-    flex: '4 4 auto',
-    padding: '0 24px 24px 24px',
-    overflowY: 'hidden',
+    flex: "4 4 auto",
+    padding: "0 24px 24px 24px",
+    overflowY: "hidden",
     selectors: {
-      p: { margin: '14px 0' },
-      'p:first-child': { marginTop: 0 },
-      'p:last-child': { marginBottom: 0 },
+      p: { margin: "14px 0" },
+      "p:first-child": { marginTop: 0 },
+      "p:last-child": { marginBottom: 0 },
     },
   },
 });
 const iconButtonStyles = {
   root: {
     color: theme.palette.neutralPrimary,
-    marginLeft: 'auto',
-    marginTop: '4px',
-    marginRight: '2px',
+    marginLeft: "auto",
+    marginTop: "4px",
+    marginRight: "2px",
   },
   rootHovered: {
     color: theme.palette.neutralDark,
